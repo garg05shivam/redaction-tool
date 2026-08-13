@@ -479,9 +479,6 @@ def _looks_like_company_name(name: str) -> bool:
     normalized = cleaned.casefold()
     words = normalized.split()
 
-    # ---------------------------------------------------------
-    # Basic validation
-    # ---------------------------------------------------------
     if len(words) < 2 or len(words) > 12:
         return False
 
@@ -489,24 +486,12 @@ def _looks_like_company_name(name: str) -> bool:
     if any(symbol in cleaned for symbol in ("@", "|", "/")):
         return False
 
-    # ---------------------------------------------------------
-    # Registration / identification numbers.
-    #
-    # Example:
-    # INM000013004 ICICI Securities Limited
-    # INZ000166136 ICICI Securities Limited
-    #
-    # These should never become part of the company name.
-    # ---------------------------------------------------------
     if any(
         re.fullmatch(r"[A-Z]{2,5}\d{6,}", word, re.IGNORECASE)
         for word in words
     ):
         return False
 
-    # ---------------------------------------------------------
-    # Exact incomplete/generic fragments.
-    # ---------------------------------------------------------
     generic_fragments = {
         "private limited",
         "india limited",
@@ -523,12 +508,6 @@ def _looks_like_company_name(name: str) -> bool:
     if normalized in generic_fragments:
         return False
 
-    # ---------------------------------------------------------
-    # Obvious prospectus/document context.
-    #
-    # Do NOT reject legitimate words such as:
-    # industrial, finance, services, investment, etc.
-    # ---------------------------------------------------------
     rejection_terms = {
         "offer",
         "escrow",
@@ -568,9 +547,6 @@ def _looks_like_company_name(name: str) -> bool:
     if set(words) & rejection_terms:
         return False
 
-    # ---------------------------------------------------------
-    # Candidate should not begin with document context.
-    # ---------------------------------------------------------
     bad_starts = {
         "and",
         "or",
@@ -594,9 +570,6 @@ def _looks_like_company_name(name: str) -> bool:
     if words[0] in bad_starts:
         return False
 
-    # ---------------------------------------------------------
-    # Government/regulatory organizations.
-    # ---------------------------------------------------------
     regulator_prefixes = (
         "securities and exchange board",
         "reserve bank of india",
@@ -700,9 +673,6 @@ def _clean_company_candidate(name: str) -> str:
 
     cleaned = _remove_registration_prefix(cleaned)
 
-    # ---------------------------------------------------------
-    # Remove common leading document/context prefixes.
-    # ---------------------------------------------------------
     prefixes = (
         "the ",
         "a ",
@@ -736,9 +706,6 @@ def _clean_company_candidate(name: str) -> str:
     if not cleaned:
         return ""
 
-    # ---------------------------------------------------------
-    # Remove trailing document context.
-    # ---------------------------------------------------------
     trailing_phrases = (
         " independent director(s)",
         " registered brokers",
@@ -762,13 +729,6 @@ def _clean_company_candidate(name: str) -> str:
     if not cleaned:
         return ""
 
-    # ---------------------------------------------------------
-    # Remove exact duplicated company spans.
-    #
-    # HDFC Bank Limited HDFC Bank Limited
-    # ->
-    # HDFC Bank Limited
-    # ---------------------------------------------------------
     words = cleaned.split()
 
     if len(words) >= 2 and len(words) % 2 == 0:
@@ -780,15 +740,6 @@ def _clean_company_candidate(name: str) -> str:
         if first.casefold() == second.casefold():
             cleaned = first
 
-    # ---------------------------------------------------------
-    # ONLY normalize the specific "and Co" pattern.
-    #
-    # Kanj and Co LLP
-    # ->
-    # Kanj & Co. LLP
-    #
-    # DO NOT change ordinary "and".
-    # ---------------------------------------------------------
     cleaned = re.sub(
         r"\band\s+Co\.?\b",
         "& Co.",
@@ -839,10 +790,6 @@ def _split_company_span(name: str) -> list[str]:
 
     if not cleaned:
         return []
-
-    # ---------------------------------------------------------
-    # Exact repeated company.
-    # ---------------------------------------------------------
     words = cleaned.split()
 
     if len(words) >= 2 and len(words) % 2 == 0:
@@ -854,15 +801,6 @@ def _split_company_span(name: str) -> list[str]:
         if first.casefold() == second.casefold():
             return [first]
 
-    # ---------------------------------------------------------
-    # First handle comma-separated company lists.
-    #
-    # Example:
-    # Al-Ahleia Switchgear Co., Bharat Bijlee Limited
-    #
-    # The first part isn't a valid legal company under our
-    # suffix rules, while the second one is.
-    # ---------------------------------------------------------
     comma_parts = [
         part.strip()
         for part in re.split(r",\s*", cleaned)
@@ -881,16 +819,6 @@ def _split_company_span(name: str) -> list[str]:
         if valid_parts:
             return valid_parts
 
-    # ---------------------------------------------------------
-    # Split on "and" ONLY when both sides independently contain
-    # complete legal company names.
-    #
-    # This prevents:
-    #
-    # Shubhkamal Leasing and Investment Private Limited
-    #
-    # from being incorrectly split.
-    # ---------------------------------------------------------
     and_parts = re.split(
         r"\s+\band\b\s+",
         cleaned,
@@ -908,16 +836,6 @@ def _split_company_span(name: str) -> list[str]:
 
         if len(valid_parts) >= 2:
             return valid_parts
-
-    # ---------------------------------------------------------
-    # Consecutive legal company names with no separator.
-    #
-    # Example:
-    #
-    # Emirates Transformer & Switchgear Limited HDFC Bank Limited
-    #
-    # We split only after a COMPLETE terminal legal suffix.
-    # ---------------------------------------------------------
     suffix_pattern = re.compile(
         r"\b(?:Private Limited|Pvt\.?\s+Ltd\.?|Limited|Ltd\.?|"
         r"LLP)\b",
@@ -949,13 +867,6 @@ def _split_company_span(name: str) -> list[str]:
                 start = end
                 continue
 
-            # Look at text between this suffix and the next
-            # company. If it starts with "of", this may be part
-            # of the SAME company:
-            #
-            # Solar Energy Corporation of India Limited
-            #
-            # Therefore do NOT split at Corporation.
             between = cleaned[end:matches[index + 1].start()].strip()
 
             if between.casefold().startswith(("of ", "the ")):
@@ -1035,10 +946,6 @@ def detect_legal_company_names(text: str) -> list[str]:
     The detector collects all possible spans first and then
     resolves overlapping/partial matches.
     """
-
-    # ---------------------------------------------------------
-    # Capitalized company token.
-    # ---------------------------------------------------------
     word = r"[A-Z][A-Za-z0-9.'()/-]*"
 
     # Legitimate ampersand inside company names.
@@ -1078,19 +985,6 @@ def detect_legal_company_names(text: str) -> list[str]:
                 )
             )
 
-    # ---------------------------------------------------------
-    # Sort:
-    #   1. earliest position
-    #   2. longest span first
-    #
-    # This lets the full:
-    #
-    # Solar Energy Corporation of India Limited
-    #
-    # win over:
-    #
-    # Solar Energy Corporation
-    # ---------------------------------------------------------
     raw_matches.sort(
         key=lambda item: (
             item[0],
@@ -1098,12 +992,6 @@ def detect_legal_company_names(text: str) -> list[str]:
         )
     )
 
-    # ---------------------------------------------------------
-    # Resolve overlapping spans.
-    #
-    # If a shorter candidate is completely contained in a longer
-    # candidate, discard the shorter one.
-    # ---------------------------------------------------------
     selected_spans = []
 
     for start, end, raw in raw_matches:
@@ -1123,7 +1011,6 @@ def detect_legal_company_names(text: str) -> list[str]:
             continue
 
         # Remove previously selected shorter spans contained
-        # inside this new longer span.
         selected_spans = [
             item
             for item in selected_spans
@@ -1143,7 +1030,6 @@ def detect_legal_company_names(text: str) -> list[str]:
 
     for _, _, raw in selected_spans:
 
-        # A legal regex span can still contain multiple companies.
         candidates = _split_company_span(raw)
 
         for candidate in candidates:
@@ -1174,18 +1060,10 @@ def detect_company_names(
 
     companies = []
 
-    # =========================================================
-    # PRIMARY DETECTOR
-    # =========================================================
 
     companies.extend(
         detect_legal_company_names(text)
     )
-
-    # =========================================================
-    # SECONDARY DETECTOR: spaCy ORG
-    # =========================================================
-
     nlp = load_ner_model()
     chunk_size = 50000
 
@@ -1224,15 +1102,7 @@ def detect_company_names(
 
                 companies.append(candidate)
 
-    # =========================================================
-    # FINAL NORMALIZATION + DEDUPLICATION
-    # =========================================================
-
     companies = _deduplicate_company_names(companies)
-
-    # =========================================================
-    # OPTIONAL ASSIGNMENT FILTER
-    # =========================================================
 
     if allowed_only:
         companies = _filter_to_allowed_companies(
@@ -1303,8 +1173,6 @@ def _filter_to_allowed_companies(
             continue
 
         seen.add(key)
-
-        # Return the exact canonical spelling from the gold set.
         result.append(allowed[key])
 
     return result
