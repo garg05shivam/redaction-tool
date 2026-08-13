@@ -47,3 +47,22 @@ def detect_phone_numbers(text: str) -> list[str]:
     unique_numbers = list(dict.fromkeys(matches))
 
     return unique_numbers
+
+IP_PATTERN = re.compile(
+    r"\b"
+    r"(?:"
+    r"(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)"
+    r"\."
+    r"){3}"
+    r"(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)"
+    r"\b"
+)
+
+
+def detect_ip_addresses(text: str) -> list[str]:
+    """Return unique valid IPv4 addresses found in the text."""
+    matches = IP_PATTERN.findall(text)
+
+    unique_addresses = list(dict.fromkeys(matches))
+
+    return unique_addresses
