@@ -45,10 +45,14 @@ def main() -> None:
 
     for pii_type, detector in DETECTORS.items():
         print("=" * 80)
-        print(f"{pii_type}")
+        print(pii_type)
         print("=" * 80)
 
-        predictions = detector(text)
+        # COMPANY uses the same filtering mode as evaluate.py.
+        if pii_type == "COMPANY":
+            predictions = detector(text, allowed_only=True)
+        else:
+            predictions = detector(text)
 
         print(f"Candidates detected: {len(predictions)}")
         print()
