@@ -150,7 +150,27 @@ PERSON_REJECTION_TERMS = {
     "no.",
     "bo",
 }
+COMPANY_STRONG_SUFFIXES = {
+    "limited",
+    "ltd",
+    "llp",
+    "inc",
+    "incorporated",
+    "corporation",
+    "corp",
+}
 
+COMPANY_LEGAL_PHRASES = {
+    "private limited",
+    "pvt ltd",
+}
+
+COMPANY_BUSINESS_INDICATORS = {
+    "bank",
+    "securities",
+    "leasing",
+    "investments",
+}
 def load_ner_model():
     """Load the spaCy English model used for person/entity detection."""
     return spacy.load(NER_MODEL_NAME)
@@ -446,3 +466,252 @@ def detect_person_names(text: str) -> list[str]:
             unique_names.append(name)
 
     return unique_names
+
+
+def _looks_like_company_name(name: str) -> bool:
+    """Return True for conservative company/organization candidates."""
+    cleaned = " ".join(name.split()).strip()
+
+    if not cleaned:
+        return False
+
+    normalized = cleaned.casefold()
+    words = normalized.split()
+    generic_company_fragments = {
+        "securities limited",
+        "advisory private limited",
+    }
+
+    if normalized in generic_company_fragments:
+        return False
+
+    if len(words) < 2:
+        return False
+
+    if len(words) > 12:
+        return False
+
+    # Reject obvious document/table fragments.
+    if any(symbol in cleaned for symbol in ["@", "|", "/"]):
+        return False
+
+    # Reject common prospectus context words.
+    rejection_terms = {
+        "offer",
+        "escrow",
+        "collection",
+        "account",
+        "public",
+        "refund",
+        "registered",
+        "brokers",
+        "sponsor",
+        "banks",
+        "syndicate",
+        "members",
+        "shareholders",
+        "lead",
+        "managers",
+        "registrar",
+        "telephone",
+        "email",
+        "collectively",
+        "ground",
+        "floor",
+        "independent",
+        "director",
+        "directors",
+    }
+
+    normalized_words = set(words)
+
+    if normalized_words & rejection_terms:
+        return False
+
+    # Reject regulatory/legal bodies that aren't company PII.
+    regulator_prefixes = (
+        "securities and exchange board",
+        "reserve bank of india",
+        "insurance regulatory and development authority",
+        "national payments corporation",
+        "national securities depository",
+        "government of india",
+        "ministry of",
+    )
+
+    if normalized.startswith(regulator_prefixes):
+        return False
+
+    # Strong legal entity indicators.
+    strong_suffixes = {
+        "limited",
+        "ltd",
+        "llp",
+        "corporation",
+        "corp",
+    }
+
+    if any(
+        normalized.endswith(f" {suffix}")
+        for suffix in strong_suffixes
+    ):
+        return True
+
+    if normalized.endswith(" private limited"):
+        return True
+
+    if normalized.endswith(" pvt ltd"):
+        return True
+
+    return False
+
+def _clean_company_candidate(name: str) -> str:
+    cleaned = " ".join(name.split()).strip()
+
+    for prefix in ("the ", "a ", "an "):
+        if cleaned.casefold().startswith(prefix):
+            cleaned = cleaned[len(prefix):].strip()
+
+    trailing_phrases = (
+        " independent director(s)",
+        " registered brokers",
+        " ground floor",
+        " public offer account",
+        " stock",
+    )
+
+    lowered = cleaned.casefold()
+
+    for phrase in trailing_phrases:
+        if lowered.endswith(phrase):
+            cleaned = cleaned[:-len(phrase)].strip()
+            lowered = cleaned.casefold()
+
+    words = cleaned.split()
+
+    if len(words) % 2 == 0:
+        midpoint = len(words) // 2
+
+        first_half = " ".join(words[:midpoint])
+        second_half = " ".join(words[midpoint:])
+
+        if first_half.casefold() == second_half.casefold():
+            cleaned = first_half
+
+    return cleaned
+def _deduplicate_company_names(companies: list[str]) -> list[str]:
+    cleaned = []
+
+    for company in companies:
+        company = " ".join(company.split()).strip()
+
+        if company:
+            cleaned.append(company)
+
+    unique = {}
+    
+    for company in cleaned:
+        key = company.casefold()
+
+        if key not in unique:
+            unique[key] = company
+
+    candidates = list(unique.values())
+
+    result = []
+
+    for candidate in candidates:
+        candidate_key = candidate.casefold()
+
+        contained_in_longer = False
+
+        for other in candidates:
+            other_key = other.casefold()
+
+            if (
+                candidate_key != other_key
+                and candidate_key in other_key
+                and len(other_key) > len(candidate_key)
+            ):
+                contained_in_longer = True
+                break
+
+        if not contained_in_longer:
+            result.append(candidate)
+
+    return result
+
+def detect_company_names(text: str) -> list[str]:
+    """Return unique company names ."""
+    nlp = load_ner_model()
+
+    companies = []
+    chunk_size = 50000
+
+    for start in range(0, len(text), chunk_size):
+        chunk = text[start:start + chunk_size]
+
+        document = nlp(chunk)
+
+        for entity in document.ents:
+            if entity.label_ != "ORG":
+                continue
+
+            company = _clean_company_candidate(entity.text)
+
+            if _looks_like_company_name(company):
+                companies.append(company)
+
+    return _deduplicate_company_names(companies)
+
+def _clean_legal_company_candidate(name: str) -> str:
+    """Remove common document/context prefixes from a company candidate."""
+    cleaned = " ".join(name.split()).strip()
+
+    prefixes = (
+        "Offer ",
+        "Formerly ",
+        "Company ",
+        "Collectively, ",
+        "Shareholders ",
+        "Anchor Investor. ",
+        "Sponsor Banks ",
+        "Syndicate Members ",
+        "Public Offer Account Bank ",
+        "REGISTRAR TO THE OFFER ",
+        "EMAIL AND TELEPHONE ",
+        "TELEPHONE AND EMAIL ",
+    )
+
+    changed = True
+
+    while changed:
+        changed = False
+
+        for prefix in prefixes:
+            if cleaned.startswith(prefix):
+                cleaned = cleaned[len(prefix):].strip()
+                changed = True
+
+    return cleaned
+
+def detect_legal_company_names(text: str) -> list[str]:
+    """Detect company names using common legal entity suffixes."""
+    patterns = [
+        r"\b(?:[A-Z][A-Za-z&.,'()-]*\s+){1,7}Private Limited\b",
+        r"\b(?:[A-Z][A-Za-z&.,'()-]*\s+){1,7}Limited\b",
+        r"\b(?:[A-Z][A-Za-z&.,'()-]*\s+){1,7}Corporation\b",
+        r"\b(?:[A-Z][A-Za-z&.,'()-]*\s+){1,7}LLP\b",
+        r"\b(?:[A-Z][A-Za-z&.,'()-]*\s+){1,7}Ltd\.?\b",
+    ]
+
+    companies = []
+
+    for pattern in patterns:
+        for match in re.finditer(pattern, text):
+            company = " ".join(match.group(0).split()).strip()
+
+            if _looks_like_company_name(company):
+                companies.append(company)
+
+    return companies
