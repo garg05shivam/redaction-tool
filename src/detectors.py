@@ -1176,3 +1176,392 @@ def _filter_to_allowed_companies(
         result.append(allowed[key])
 
     return result
+
+def detect_addresses(text: str) -> list[str]:
+    """
+    Detect physical/mailing addresses from the prospectus.
+
+    The DOCX reader can flatten tables into pipe-separated text.
+    This detector therefore:
+
+    - examines table cells independently
+    - extracts cells containing strong address signals
+    - supports Indian PIN formats such as 400083 and 411 004
+    - removes labels such as "Registered Office:"
+    - removes company/person metadata before an address
+    - rejects financial/table/list rows
+    - removes duplicate/contained address fragments
+    """
+
+    results = []
+    seen = set()
+
+    address_terms = (
+        "road",
+        "rd",
+        "street",
+        "st",
+        "lane",
+        "ln",
+        "marg",
+        "nagar",
+        "colony",
+        "layout",
+        "sector",
+        "phase",
+        "estate",
+        "park",
+        "complex",
+        "building",
+        "tower",
+        "floor",
+        "plot",
+        "bungalow",
+        "bunglow",
+        "apartment",
+        "flat",
+        "house",
+        "villa",
+        "society",
+        "business centre",
+        "business center",
+        "railway station",
+    )
+    city_terms = (
+        "mumbai",
+        "pune",
+        "delhi",
+        "new delhi",
+        "bengaluru",
+        "bangalore",
+        "hyderabad",
+        "chennai",
+        "kolkata",
+        "ahmedabad",
+        "thane",
+        "navi mumbai",
+        "gurgaon",
+        "gurugram",
+        "noida",
+        "jaipur",
+        "surat",
+        "vadodara",
+        "nagpur",
+        "nashik",
+        "indore",
+        "lucknow",
+        "chandigarh",
+        "kochi",
+        "coimbatore",
+    )
+    pin_pattern = re.compile(
+        r"\b[1-9]\d{2}\s?\d{3}\b"
+    )
+    company_suffix_pattern = re.compile(
+        r"\b(?:Private Limited|Limited|Corporation|LLP|"
+        r"Ltd\.?|Pvt\.?\s+Ltd\.?)\b",
+        flags=re.IGNORECASE,
+    )
+
+    metadata_prefixes = (
+        "registered office:",
+        "corporate office:",
+        "administrative office:",
+        "branch office:",
+        "office:",
+        "address:",
+        "unit address:",
+        "manufacturing facility:",
+    )
+
+    rejection_terms = (
+        "registration number",
+        "registered number",
+        "bearing registration",
+        "registration no",
+        "registration no.",
+        "appointed by our company",
+        "independent chartered engineer",
+        "per annum",
+        "respectively",
+        "offer price",
+        "floor price",
+        "cap price",
+        "proposed installed",
+        "financial year",
+        "fiscal",
+        "revenue",
+        "profit",
+        "loss",
+        "equity",
+        "capital",
+        "shares",
+        "drafting and approval",
+        "publicity material",
+        "statutory advertisement",
+        "international institutional marketing",
+        "domestic institutional marketing",
+        "coordination with stock",
+        "road show presentation",
+        "frequently asked questions",
+        "customer",
+        "brlms",
+        "i-sec",
+    )
+
+    raw_lines = [
+        " ".join(line.split()).strip()
+        for line in text.splitlines()
+        if line.strip()
+    ]
+
+    def clean_candidate(value: str) -> str:
+        """
+        Clean one possible address cell.
+        """
+
+        value = " ".join(value.split()).strip()
+
+        if not value:
+            return ""
+
+        lowered = value.casefold()
+
+        for prefix in metadata_prefixes:
+            if lowered.startswith(prefix):
+                value = value[len(prefix):].strip()
+                lowered = value.casefold()
+
+        value = re.sub(
+            r"^(?:our\s+)?"
+            r"(?:manufacturing|registered|corporate|"
+            r"administrative)\s+"
+            r"(?:facility|office)"
+            r"\s+(?:located\s+)?(?:at|:)?\s*",
+            "",
+            value,
+            flags=re.IGNORECASE,
+        ).strip()
+
+        value = re.split(
+            r"\b(?:Telephone|Tel|Phone|Mobile|Fax)"
+            r"\s*:",
+            value,
+            maxsplit=1,
+            flags=re.IGNORECASE,
+        )[0].strip()
+
+    
+        suffix_matches = list(
+            company_suffix_pattern.finditer(value)
+        )
+
+        if suffix_matches:
+            last_suffix = suffix_matches[-1]
+
+            after_suffix = value[
+                last_suffix.end():
+            ].strip()
+
+            # follows the company suffix.
+            if after_suffix:
+                after_lower = after_suffix.casefold()
+
+                if (
+                    pin_pattern.search(after_suffix)
+                    or any(
+                        term in after_lower
+                        for term in address_terms
+                    )
+                ):
+                    value = after_suffix
+
+        value = value.strip(" \t\r\n;|,")
+
+        return value
+
+    def is_valid_address(value: str) -> bool:
+        """
+        Decide whether a cleaned candidate is actually
+        address-like.
+        """
+
+        if not value:
+            return False
+
+        normalized = value.casefold()
+
+        if "|" in value:
+            return False
+
+        if any(
+            term in normalized
+            for term in rejection_terms
+        ):
+            return False
+
+        if re.fullmatch(
+            r"(?:registration|reg\.?)"
+            r"\s*(?:number|no\.?)?"
+            r"\s*[:\-]?\s*[A-Z0-9-]+",
+            value,
+            flags=re.IGNORECASE,
+        ):
+            return False
+
+        if len(value) < 15:
+            return False
+
+        if len(value.split()) > 30:
+            return False
+
+        has_pin = bool(
+            pin_pattern.search(value)
+        )
+
+        has_address_term = any(
+            term in normalized
+            for term in address_terms
+        )
+
+        has_city = any(
+            city in normalized
+            for city in city_terms
+        )
+
+        if has_pin and (
+            has_address_term
+            or has_city
+        ):
+            return True
+
+        starts_with_number = bool(
+            re.match(
+                r"^\s*"
+                r"(?:"
+                r"C-\d+"
+                r"|"
+                r"\d{1,5}"
+                r"(?:\s*[-–/]\s*\d{1,5})?"
+                r")"
+                r"(?:\s+|,)",
+                value,
+                flags=re.IGNORECASE,
+            )
+        )
+
+        if (
+            starts_with_number
+            and has_address_term
+        ):
+            return True
+
+        if (
+            has_city
+            and has_address_term
+            and (
+                "india" in normalized
+                or "maharashtra" in normalized
+                or "karnataka" in normalized
+                or "gujarat" in normalized
+                or "delhi" in normalized
+            )
+        ):
+            return True
+
+        return False
+
+    for raw_line in raw_lines:
+        if "|" in raw_line:
+
+            cells = [
+                " ".join(cell.split()).strip()
+                for cell in raw_line.split("|")
+                if cell.strip()
+            ]
+
+        else:
+            cells = [raw_line]
+
+        for cell in cells:
+
+            candidate = clean_candidate(cell)
+
+            if not candidate:
+                continue
+
+            if not is_valid_address(candidate):
+                continue
+
+            key = candidate.casefold()
+
+            if key in seen:
+                continue
+
+            seen.add(key)
+            results.append(candidate)
+
+
+    normalized_results = [
+        (
+            value,
+            re.sub(
+                r"[^a-z0-9]+",
+                " ",
+                value.casefold(),
+            ).strip(),
+        )
+        for value in results
+    ]
+
+    keep = []
+
+    for index, (value, normalized) in enumerate(
+        normalized_results
+    ):
+
+        remove = False
+
+        for other_index, (
+            other_value,
+            other_normalized,
+        ) in enumerate(normalized_results):
+
+            if index == other_index:
+                continue
+
+            # If another candidate is substantially longer
+            # and contains this candidate, this is probably a
+            # fragment.
+            if (
+                len(other_normalized)
+                > len(normalized)
+                and normalized
+                and normalized in other_normalized
+            ):
+                remove = True
+                break
+
+        if not remove:
+            keep.append(value)
+
+    results = keep
+
+
+    text_lower = text.casefold()
+
+    def document_position(value: str) -> int:
+        position = text_lower.find(
+            value.casefold()
+        )
+
+        if position >= 0:
+            return position
+
+        return len(text)
+
+    results.sort(
+        key=document_position
+    )
+
+    return results

@@ -20,11 +20,21 @@ from src.detectors import (
     detect_credit_cards,
     detect_dates_of_birth,
     detect_ip_addresses,
+    detect_addresses,
 )
 
 
-INPUT_FILE = PROJECT_ROOT / "input" / "Red Herring Prospectus.docx"
-GOLD_FILE = PROJECT_ROOT / "evaluation" / "gold_annotations.json"
+INPUT_FILE = (
+    PROJECT_ROOT
+    / "input"
+    / "Red Herring Prospectus.docx"
+)
+
+GOLD_FILE = (
+    PROJECT_ROOT
+    / "evaluation"
+    / "gold_annotations.json"
+)
 
 
 DETECTORS = {
@@ -36,17 +46,26 @@ DETECTORS = {
     "CREDIT_CARD": detect_credit_cards,
     "DOB": detect_dates_of_birth,
     "IP_ADDRESS": detect_ip_addresses,
+    "ADDRESS": detect_addresses,
 }
 
 
 def normalize(value: str) -> str:
-    """Normalize text for case-insensitive exact matching."""
+    """
+    Normalize text for case-insensitive exact matching.
+    """
     return " ".join(value.split()).casefold()
 
 
 def load_gold_annotations() -> list[dict]:
-    """Load manually verified annotations."""
-    with GOLD_FILE.open("r", encoding="utf-8") as file:
+    """
+    Load manually verified annotations.
+    """
+
+    with GOLD_FILE.open(
+        "r",
+        encoding="utf-8",
+    ) as file:
         data = json.load(file)
 
     return data["annotations"]
@@ -55,7 +74,10 @@ def load_gold_annotations() -> list[dict]:
 def group_gold_by_type(
     annotations: list[dict],
 ) -> dict[str, set[str]]:
-    """Group gold annotations by PII type."""
+    """
+    Group gold annotations by PII type.
+    """
+
     grouped = defaultdict(set)
 
     for annotation in annotations:
@@ -70,11 +92,21 @@ def calculate_metrics(
     gold: set[str],
     predictions: set[str],
 ) -> dict[str, float | int]:
-    """Calculate TP, FP, FN, precision, recall and F1."""
+    """
+    Calculate TP, FP, FN, precision, recall and F1.
+    """
 
-    true_positive = len(gold & predictions)
-    false_positive = len(predictions - gold)
-    false_negative = len(gold - predictions)
+    true_positive = len(
+        gold & predictions
+    )
+
+    false_positive = len(
+        predictions - gold
+    )
+
+    false_negative = len(
+        gold - predictions
+    )
 
     if true_positive + false_positive:
         precision = (
@@ -111,13 +143,17 @@ def calculate_metrics(
 
 
 def run_evaluation() -> dict[str, dict]:
-    """Run every detector against the gold annotations."""
+    """
+    Run every detector against the gold annotations.
+    """
 
     print("Reading prospectus...")
 
     text = read_docx(INPUT_FILE)
 
-    print(f"Characters loaded: {len(text)}")
+    print(
+        f"Characters loaded: {len(text)}"
+    )
     print()
 
     annotations = load_gold_annotations()
@@ -134,13 +170,8 @@ def run_evaluation() -> dict[str, dict]:
             f"Running {pii_type} detector..."
         )
 
-        # -----------------------------------------------------
-        # COMPANY:
-        # Use the optional assignment-specific filter.
-        #
-        # All other detectors use their normal interface.
-        # -----------------------------------------------------
-
+        # Company detector has the assignment-specific
+        # allowed-company filter.
         if pii_type == "COMPANY":
             detected = detector(
                 text,
@@ -149,27 +180,15 @@ def run_evaluation() -> dict[str, dict]:
         else:
             detected = detector(text)
 
-        # -----------------------------------------------------
-        # Normalize predictions
-        # -----------------------------------------------------
-
         predictions = {
             normalize(value)
             for value in detected
         }
 
-        # -----------------------------------------------------
-        # Get gold annotations
-        # -----------------------------------------------------
-
         gold = gold_by_type.get(
             pii_type,
             set(),
         )
-
-        # -----------------------------------------------------
-        # Calculate metrics
-        # -----------------------------------------------------
 
         metrics = calculate_metrics(
             gold=gold,
@@ -177,10 +196,6 @@ def run_evaluation() -> dict[str, dict]:
         )
 
         results[pii_type] = metrics
-
-        # -----------------------------------------------------
-        # Print metrics
-        # -----------------------------------------------------
 
         print(
             f"  Gold instances : "
@@ -228,7 +243,9 @@ def run_evaluation() -> dict[str, dict]:
 
 
 def main() -> None:
-    """Run evaluation and print the final summary."""
+    """
+    Run evaluation and print final summary.
+    """
 
     results = run_evaluation()
 
