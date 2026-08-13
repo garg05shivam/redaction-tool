@@ -4,6 +4,7 @@ import tempfile
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 from src.detectors import (
     detect_person_names,
@@ -14,6 +15,7 @@ from src.detectors import (
     detect_credit_cards,
     detect_dates_of_birth,
     detect_ip_addresses,
+    detect_addresses,
 )
 
 from src.document_reader import read_docx
@@ -23,10 +25,17 @@ from src.redactor import redact_docx
 app = FastAPI(
     title="PII Detection and Redaction API",
     description=(
-        "Detects personally identifiable information in DOCX documents "
-        "and generates a redacted DOCX with realistic fake replacements."
+        "Detect personally identifiable information in DOCX "
+        "documents and generate a redacted DOCX containing "
+        "realistic fake replacements."
     ),
     version="1.0.0",
+)
+
+
+DOCX_MEDIA_TYPE = (
+    "application/vnd.openxmlformats-officedocument."
+    "wordprocessingml.document"
 )
 
 
@@ -39,39 +48,42 @@ def health_check():
     }
 
 
+
 def detect_all(text: str) -> dict[str, list[str]]:
     """
-    Run all PII detectors.
+    Run all supported PII detectors.
+
+    Returns:
+        Dictionary mapping PII type to detected values.
     """
 
     return {
         "PERSON": detect_person_names(text),
+
         "EMAIL": detect_emails(text),
+
         "PHONE": detect_phone_numbers(text),
+
         "COMPANY": detect_company_names(
             text,
             allowed_only=True,
         ),
+
         "SSN": detect_ssns(text),
+
         "CREDIT_CARD": detect_credit_cards(text),
+
         "DOB": detect_dates_of_birth(text),
+
         "IP_ADDRESS": detect_ip_addresses(text),
+
+        "ADDRESS": detect_addresses(text),
     }
 
 
-@app.post("/detect")
-async def detect_and_redact(
-    file: UploadFile = File(...),
-):
+def validate_docx_upload(file: UploadFile) -> None:
     """
-    Upload a DOCX document.
-
-    The endpoint:
-      1. Reads the document.
-      2. Detects PII.
-      3. Generates fake replacements using Faker.
-      4. Creates a redacted DOCX.
-      5. Returns the redacted DOCX for download.
+    Validate that an uploaded file is a DOCX document.
     """
 
     if not file.filename:
@@ -85,6 +97,54 @@ async def detect_and_redact(
             status_code=400,
             detail="Only .docx files are supported.",
         )
+
+
+def cleanup_directory(directory: Path) -> None:
+    """
+    Remove a temporary directory after the response has
+    finished sending.
+    """
+
+    try:
+        shutil.rmtree(
+            directory,
+            ignore_errors=True,
+        )
+    except Exception:
+        pass
+
+
+
+@app.post("/detect")
+async def detect_and_redact(
+    file: UploadFile = File(...),
+):
+    """
+    Upload a DOCX document.
+
+    Processing steps:
+
+    1. Save the uploaded DOCX.
+    2. Read its text.
+    3. Detect supported PII.
+    4. Generate fake replacements.
+    5. Create a redacted DOCX.
+    6. Return the redacted DOCX.
+
+    Supported PII types:
+
+    - PERSON
+    - EMAIL
+    - PHONE
+    - COMPANY
+    - SSN
+    - CREDIT_CARD
+    - DOB
+    - IP_ADDRESS
+    - ADDRESS
+    """
+
+    validate_docx_upload(file)
 
     temp_dir = Path(
         tempfile.mkdtemp(
@@ -96,17 +156,15 @@ async def detect_and_redact(
     output_path = temp_dir / "redacted.docx"
 
     try:
-        # Save uploaded document.
+
         with input_path.open("wb") as output_file:
             shutil.copyfileobj(
                 file.file,
                 output_file,
             )
 
-        # Read document.
         text = read_docx(input_path)
 
-        # Detect PII.
         detections = detect_all(text)
 
         total_detected = sum(
@@ -114,7 +172,6 @@ async def detect_and_redact(
             for values in detections.values()
         )
 
-        # Generate fake replacements and create redacted document.
         replacements = redact_docx(
             input_file=input_path,
             output_file=output_path,
@@ -124,17 +181,26 @@ async def detect_and_redact(
         if not output_path.exists():
             raise HTTPException(
                 status_code=500,
-                detail="Redacted document was not generated.",
+                detail=(
+                    "Redaction completed but the "
+                    "redacted document was not generated."
+                ),
             )
 
-        # Return the redacted DOCX.
+
+        cleanup_task = BackgroundTask(
+            cleanup_directory,
+            temp_dir,
+        )
+
+        output_filename = (
+            "Redacted_" + file.filename
+        )
+
         return FileResponse(
             path=output_path,
-            media_type=(
-                "application/vnd.openxmlformats-officedocument."
-                "wordprocessingml.document"
-            ),
-            filename="Redacted_" + file.filename,
+            media_type=DOCX_MEDIA_TYPE,
+            filename=output_filename,
             headers={
                 "X-PII-Total-Detected": str(
                     total_detected
@@ -143,22 +209,23 @@ async def detect_and_redact(
                     len(replacements)
                 ),
             },
+            background=cleanup_task,
         )
 
     except HTTPException:
+        cleanup_directory(temp_dir)
         raise
 
     except Exception as exc:
+        cleanup_directory(temp_dir)
+
         raise HTTPException(
             status_code=500,
             detail=f"Redaction failed: {exc}",
         )
 
     finally:
-        # The response is streamed by FastAPI before cleanup
-        # in normal operation. Temporary files are isolated
-        # per request.
-        pass
+        await file.close()
 
 
 @app.post("/analyze")
@@ -166,22 +233,13 @@ async def analyze_document(
     file: UploadFile = File(...),
 ):
     """
-    Detect PII without creating a redacted document.
+    Upload a DOCX and return detected PII without creating
+    a redacted document.
 
-    Useful for testing and recruiter review.
+    Useful for testing and demonstration.
     """
 
-    if not file.filename:
-        raise HTTPException(
-            status_code=400,
-            detail="No file was provided.",
-        )
-
-    if not file.filename.lower().endswith(".docx"):
-        raise HTTPException(
-            status_code=400,
-            detail="Only .docx files are supported.",
-        )
+    validate_docx_upload(file)
 
     temp_dir = Path(
         tempfile.mkdtemp(
@@ -192,6 +250,7 @@ async def analyze_document(
     input_path = temp_dir / "input.docx"
 
     try:
+
         with input_path.open("wb") as output_file:
             shutil.copyfileobj(
                 file.file,
@@ -200,20 +259,29 @@ async def analyze_document(
 
         text = read_docx(input_path)
 
+
         detections = detect_all(text)
+
+        total_detected = sum(
+            len(values)
+            for values in detections.values()
+        )
+
 
         return {
             "filename": file.filename,
             "characters": len(text),
-            "total_detected": sum(
-                len(values)
-                for values in detections.values()
-            ),
+            "total_detected": total_detected,
             "detections": detections,
         }
 
     except Exception as exc:
+
         raise HTTPException(
             status_code=500,
             detail=f"Analysis failed: {exc}",
         )
+
+    finally:
+        await file.close()
+        cleanup_directory(temp_dir)
