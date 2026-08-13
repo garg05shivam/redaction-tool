@@ -81,3 +81,45 @@ def detect_ssns(text: str) -> list[str]:
     unique_ssns = list(dict.fromkeys(matches))
 
     return unique_ssns
+
+
+def passes_luhn_checksum(value: str) -> bool:
+    """Return True when the numeric value passes the checksum."""
+    digits = [int(character) for character in value if character.isdigit()]
+
+    if not 13 <= len(digits) <= 19:
+        return False
+
+    checksum = 0
+    double_digit = False
+
+    for digit in reversed(digits):
+        if double_digit:
+            digit *= 2
+
+            if digit > 9:
+                digit -= 9
+
+        checksum += digit
+        double_digit = not double_digit
+
+    return checksum % 10 == 0
+
+CREDIT_CARD_PATTERN = re.compile(
+    r"(?<!\d)"
+    r"(?:\d[ -]?){13,19}"
+    r"(?!\d)"
+)
+
+
+def detect_credit_cards(text: str) -> list[str]:
+    """Return unique credit-card candidates that pass Luhn validation."""
+    candidates = CREDIT_CARD_PATTERN.findall(text)
+
+    valid_cards = []
+
+    for candidate in candidates:
+        if passes_luhn_checksum(candidate):
+            valid_cards.append(candidate)
+
+    return list(dict.fromkeys(valid_cards))
