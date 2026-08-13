@@ -123,3 +123,42 @@ def detect_credit_cards(text: str) -> list[str]:
             valid_cards.append(candidate)
 
     return list(dict.fromkeys(valid_cards))
+
+DOB_PATTERN = re.compile(
+    r"""
+    \b
+    (?:
+        date\s+of\s+birth
+        |
+        dob
+        |
+        birth\s+date
+    )
+    \s*
+    (?:
+        :
+        |
+        -
+        |
+        \s
+    )
+    \s*
+    (
+        \d{1,2}[/-]\d{1,2}[/-]\d{4}
+        |
+        \d{1,2}\s+
+        (?:January|February|March|April|May|June|July|August|September|October|November|December)
+        \s+
+        \d{4}
+    )
+    \b
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
+
+def detect_dates_of_birth(text: str) -> list[str]:
+    """Return dates explicitly associated with birth-date terminology."""
+    matches = DOB_PATTERN.findall(text)
+
+    return list(dict.fromkeys(matches))
