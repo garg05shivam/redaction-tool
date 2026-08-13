@@ -1,5 +1,159 @@
 import re
+import spacy
+NER_MODEL_NAME = "en_core_web_sm"
+PERSON_REJECTION_TERMS = {
+    "limited",
+    "private",
+    "company",
+    "corporation",
+    "trust",
+    "bank",
+    "hospital",
+    "facility",
+    "electricals",
+    "huf",
 
+    "shareholder",
+    "shareholders",
+    "promoter",
+    "promoters",
+    "director",
+    "directors",
+    "personnel",
+    "managerial",
+    "transfer",
+    "secondary",
+    "selling",
+    "reference",
+    "rate",
+    "amount",
+    "price",
+    "offer",
+    "bidders",
+    "bidder",
+    "bid",
+    "listing",
+    "registrar",
+    "website",
+    "account",
+    "particulars",
+    "description",
+    "schedule",
+    "acknowledgement",
+    "circulars",
+    "defaulter",
+    "dues",
+    "branch",
+    "broker",
+    "brokerage",
+    "escrow",
+    "collection",
+    "agent",
+    "agents",
+    "registered",
+
+    "mutual",
+    "funds",
+    "financial",
+    "operational",
+    "measures",
+    "ebitda",
+    "gigawatt",
+    "gigawatt-hour",
+    "megawatt",
+    "kilometers",
+    "air",
+    "conditioning",
+    "mega",
+    "volt-amperes",
+    "photovoltaic",
+    "photo",
+    "voltaic",
+    "energy",
+    "power",
+    "dfi",
+
+    "taluka",
+    "village",
+    "marg",
+    "hospital",
+    "shivajinagar",
+    "reclamation",
+    "churchgate",
+    "khalumbre",
+    "industrial",
+    "park",
+
+    "acknowledgement",
+    "slip",
+    "schedule",
+    "description",
+    "red",
+
+    "gigawatt",
+    "gwh",
+    "hvdc",
+    "megavolt-amperes",
+    "megawatt",
+    "mww",
+
+    "s",
+    "no",
+
+    "offer-related",
+    "related",
+    "widely",
+    "circulated",
+    "marathi",
+    "daily",
+    "newspaper",
+    "kisan",
+    "urja",
+    "suraksha",
+    "dp",
+    "id",
+
+    "taluka",
+    "pune",
+    "mumbai",
+    "marg",
+    "road",
+    "lane",
+    "nagar",
+    "village",
+    "park",
+    "industrial",
+    "house",
+    "apartment",
+    "flat",
+    "showroom",
+    "chambers",
+    "bhavan",
+    "complex",
+    "east",
+    "west",
+    "north",
+    "south",
+    "gymkhana",
+    "colony",
+    "monte",
+
+    "corrigenda",
+    "thereto",
+    "circuit",
+    "kilometers",
+    "branch",
+    "particulars",
+    "description",
+    "nuvama",
+    "s.",
+    "no.",
+    "bo",
+}
+
+def load_ner_model():
+    """Load the spaCy English model used for person/entity detection."""
+    return spacy.load(NER_MODEL_NAME)
 
 EMAIL_PATTERN = re.compile(
     r"\b[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+"
@@ -162,3 +316,133 @@ def detect_dates_of_birth(text: str) -> list[str]:
     matches = DOB_PATTERN.findall(text)
 
     return list(dict.fromkeys(matches))
+
+def _looks_like_person_name(name: str) -> bool:
+    """Apply conservative rules to a spaCy PERSON candidate."""
+    cleaned = " ".join(name.split())
+
+    if not cleaned:
+        return False
+
+    words = cleaned.split()
+
+    # A full name normally contains at least two words.
+    if len(words) < 2:
+        return False
+
+    # Avoid unusually long NER spans.
+    if len(words) > 6:
+        return False
+
+    # Names should not contain digits.
+    if any(character.isdigit() for character in cleaned):
+        return False
+
+    # Reject email, URL, and table-like fragments.
+    if any(symbol in cleaned for symbol in "@:/|"):
+        return False
+
+    normalized_words = set()
+
+    for word in words:
+        cleaned_word = word.strip(".,()[]{}'\"")
+
+        for part in cleaned_word.split("-"):
+            if part:
+                normalized_words.add(part.lower())
+
+    # Reject known non-person terminology.
+    if normalized_words & PERSON_REJECTION_TERMS:
+        return False
+
+    # Reject candidates beginning with common document/address words.
+    first_word = words[0].strip(".,()[]{}'\"").lower()
+
+    if first_word in {
+        "a",
+        "an",
+        "the",
+        "of",
+        "and",
+        "or",
+        "to",
+        "in",
+    }:
+        return False
+
+    # Reject location/address phrases.
+    address_indicators = {
+        "taluka",
+        "village",
+        "marg",
+        "road",
+        "lane",
+        "nagar",
+        "park",
+        "industrial",
+        "complex",
+        "colony",
+        "hospital",
+        "reclamation",
+    }
+
+    if normalized_words & address_indicators:
+        return False
+
+    # Reject technical/document phrases.
+    technical_indicators = {
+        "schedule",
+        "mega",
+        "volt",
+        "amperes",
+        "megawatt",
+        "gigawatt",
+        "gwh",
+        "hvdc",
+        "mww",
+    }
+
+    if normalized_words & technical_indicators:
+        return False
+
+    # Every word must contain alphabetic characters.
+    if not all(
+        any(character.isalpha() for character in word)
+        for word in words
+    ):
+        return False
+
+    return True
+
+def detect_person_names(text: str) -> list[str]:
+    """Return filtered unique PERSON names detected by spaCy."""
+    nlp = load_ner_model()
+
+    chunk_size = 50000
+    names = []
+
+    for start in range(0, len(text), chunk_size):
+        chunk = text[start:start + chunk_size]
+
+        document = nlp(chunk)
+
+        for entity in document.ents:
+            if entity.label_ != "PERSON":
+                continue
+
+            name = " ".join(entity.text.split())
+
+            if _looks_like_person_name(name):
+                names.append(name)
+
+    unique_names = []
+    seen = set()
+
+    for name in names:
+        key = name.casefold()
+
+        if key not in seen:
+            seen.add(key)
+            unique_names.append(name)
+
+    return unique_names
