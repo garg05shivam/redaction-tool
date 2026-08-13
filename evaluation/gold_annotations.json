@@ -1,0 +1,360 @@
+{
+  "document": "Red Herring Prospectus",
+  "annotations": [
+    {
+      "text": "Sarthak Malvadkar",
+      "type": "PERSON"
+    },
+    {
+      "text": "Kushal Subbayya Hegde",
+      "type": "PERSON"
+    },
+    {
+      "text": "Pushpa Kushal Hegde",
+      "type": "PERSON"
+    },
+    {
+      "text": "Rajesh Kushal Hegde",
+      "type": "PERSON"
+    },
+    {
+      "text": "Rohit Kushal Hegde",
+      "type": "PERSON"
+    },
+    {
+      "text": "Sandesh Bhagwat",
+      "type": "PERSON"
+    },
+    {
+      "text": "Amod Joshi",
+      "type": "PERSON"
+    },
+    {
+      "text": "Karunakar N. Bhandary",
+      "type": "PERSON"
+    },
+    {
+      "text": "Narayna B. Shetty",
+      "type": "PERSON"
+    },
+    {
+      "text": "Jayaram N. Shetty",
+      "type": "PERSON"
+    },
+    {
+      "text": "Ajay Shriram Patil",
+      "type": "PERSON"
+    },
+    {
+      "text": "Pushpa Hegde",
+      "type": "PERSON"
+    },
+    {
+      "text": "Shanti Gopalkrishnan",
+      "type": "PERSON"
+    },
+    {
+      "text": "Tushar Gavankar",
+      "type": "PERSON"
+    },
+    {
+      "text": "Varun Badai",
+      "type": "PERSON"
+    },
+    {
+      "text": "KUSHAL HEGDE",
+      "type": "PERSON"
+    },
+    {
+      "text": "Abhijit Diwan",
+      "type": "PERSON"
+    },
+    {
+      "text": "Sangeeta Ramprasad Rai",
+      "type": "PERSON"
+    },
+    {
+      "text": "Rajesh Hegde",
+      "type": "PERSON"
+    },
+    {
+      "text": "Rupal K. Sancheti",
+      "type": "PERSON"
+    },
+    {
+      "text": "Salil Ajay Bhargava",
+      "type": "PERSON"
+    },
+    {
+      "text": "Ajay Menon",
+      "type": "PERSON"
+    },
+    {
+      "text": "Karunakar Hegde",
+      "type": "PERSON"
+    },
+    {
+      "text": "Rohit Hegde",
+      "type": "PERSON"
+    },
+    {
+      "text": "Vijay Hegde",
+      "type": "PERSON"
+    },
+    {
+      "text": "Kumar Tiwari",
+      "type": "PERSON"
+    },
+
+    {
+      "text": "cs.connect@kshinternational.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "Sarthak.malvadkar@kshinterantional.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "ksh.ipo@nuvama.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "customerservice.mb@nuvama.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "ksh@icicisecurities.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "customercare@icicisecurities.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "prakash.boricha@nuvama.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "sheetal.parab@nuvama.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "ipo@trilegal.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "kshinternational.ipo@in.mpms.mufg.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "siddharth.jadhav@hdfcbank.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "sachin.gawade@hdfcbank.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "eric.bacha@hdfcbank.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "tushar.gavankar@hdfcbank.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "pravin.teli2@hdfcbank.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "Ipocmg@icicibank.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "parag.pansare@kirtanepandit.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "hitesh.ramani@citi.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "pro@eximbankindia.in",
+      "type": "EMAIL"
+    },
+    {
+      "text": "sharmila.joshi@indusind.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "cherag.gyara@icicibank.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "manisha.shukla@hdfcbank.com",
+      "type": "EMAIL"
+    },
+    {
+      "text": "rm6.ifbpune@sbi.co.in",
+      "type": "EMAIL"
+    },
+    {
+      "text": "ashishmp@federalbank.co.in",
+      "type": "EMAIL"
+    },
+    {
+      "text": "anand.soni@bajajfinserv.in",
+      "type": "EMAIL"
+    },
+    {
+      "text": "hingnetare@gmail.com",
+      "type": "EMAIL"
+    },
+
+    {
+      "text": "+91 22 40094400",
+      "type": "PHONE"
+    },
+    {
+      "text": "+91 22 30752929",
+      "type": "PHONE"
+    },
+    {
+      "text": "+91 22 30752928",
+      "type": "PHONE"
+    },
+    {
+      "text": "+91 22 30752914",
+      "type": "PHONE"
+    },
+    {
+      "text": "022-68052182",
+      "type": "PHONE"
+    },
+    {
+      "text": "+91-20-26234000",
+      "type": "PHONE"
+    },
+    {
+      "text": "8879770456",
+      "type": "PHONE"
+    },
+
+    {
+      "text": "KSH INTERNATIONAL LIMITED",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Bhandary Metal Extrusion Private Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "KSH International Private Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Kirtane & Pandit LLP",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Emirates Transformer & Switchgear Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Georgia Transformer Corporation",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Virginia Transformer Corporation",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Cindus Corporation",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Beck India Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Hindalco Industries Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Savli Copper Products Private Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Care Ratings Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Waterloo Motors Private Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "KSH Project Management Services Private Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "KSH Distriparks Private Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "KSH Integrated Logistics Private Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Electricals Private Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Park IV Private Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Nuvama Wealth Management Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "MUFG Intime India Private Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "HDFC Bank Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Kanj & Co. LLP",
+      "type": "COMPANY"
+    },
+    {
+      "text": "IndusInd Bank Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Federal Bank Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "BSE Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "KSH Infra Park VI Private Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Solar Energy Corporation of India Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Malabar India Fund Limited",
+      "type": "COMPANY"
+    },
+    {
+      "text": "Shubhkamal Leasing and Investment Private Limited",
+      "type": "COMPANY"
+    }
+  ]
+}

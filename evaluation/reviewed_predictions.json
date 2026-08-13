@@ -1,0 +1,126 @@
+{
+  "PERSON": {
+    "true_positive": [
+      "Sarthak Malvadkar",
+      "Kushal Subbayya Hegde",
+      "Pushpa Kushal Hegde",
+      "Rajesh Kushal Hegde",
+      "Rohit Kushal Hegde",
+      "Sandesh Bhagwat",
+      "Amod Joshi",
+      "Karunakar N. Bhandary",
+      "Narayna B. Shetty",
+      "Jayaram N. Shetty",
+      "Ajay Shriram Patil",
+      "Pushpa Hegde",
+      "Shanti Gopalkrishnan",
+      "Tushar Gavankar",
+      "Varun Badai",
+      "KUSHAL HEGDE",
+      "Abhijit Diwan",
+      "Sangeeta Ramprasad Rai",
+      "Rajesh Hegde",
+      "Rupal K. Sancheti",
+      "Salil Ajay Bhargava",
+      "Ajay Menon",
+      "Karunakar Hegde",
+      "Rohit Hegde",
+      "Vijay Hegde",
+      "Kumar Tiwari"
+    ],
+    "false_positive": []
+  },
+  "EMAIL": {
+    "true_positive": [
+        "cs.connect@kshinternational.com",
+    "Sarthak.malvadkar@kshinterantional.com",
+    "ksh.ipo@nuvama.com",
+    "customerservice.mb@nuvama.com",
+    "ksh@icicisecurities.com",
+    "customercare@icicisecurities.com",
+    "prakash.boricha@nuvama.com",
+    "sheetal.parab@nuvama.com",
+    "ipo@trilegal.com",
+    "kshinternational.ipo@in.mpms.mufg.com",
+    "siddharth.jadhav@hdfcbank.com",
+    "sachin.gawade@hdfcbank.com",
+    "eric.bacha@hdfcbank.com",
+    "tushar.gavankar@hdfcbank.com",
+    "pravin.teli2@hdfcbank.com",
+    "Ipocmg@icicibank.com",
+    "parag.pansare@kirtanepandit.com",
+    "hitesh.ramani@citi.com",
+    "pro@eximbankindia.in",
+    "sharmila.joshi@indusind.com",
+    "cherag.gyara@icicibank.com",
+    "manisha.shukla@hdfcbank.com",
+    "rm6.ifbpune@sbi.co.in",
+    "ashishmp@federalbank.co.in",
+    "anand.soni@bajajfinserv.in",
+    "hingnetare@gmail.com"
+    ],
+    "false_positive": []
+  },
+  "PHONE": {
+    "true_positive": [
+        "+91 22 40094400",
+    "+91 22 30752929",
+    "+91 22 30752928",
+    "+91 22 30752914",
+    "022-68052182",
+    "+91-20-26234000",
+    "8879770456"
+    ],
+    "false_positive": []
+  },
+  "COMPANY": {
+    "true_positive": [
+         "KSH INTERNATIONAL LIMITED",
+    "Bhandary Metal Extrusion Private Limited",
+    "KSH International Private Limited",
+    "Kirtane & Pandit LLP",
+    "Emirates Transformer & Switchgear Limited",
+    "Georgia Transformer Corporation",
+    "Virginia Transformer Corporation",
+    "Cindus Corporation",
+    "Beck India Limited",
+    "Hindalco Industries Limited",
+    "Savli Copper Products Private Limited",
+    "Care Ratings Limited",
+    "Waterloo Motors Private Limited",
+    "KSH Project Management Services Private Limited",
+    "KSH Distriparks Private Limited",
+    "KSH Integrated Logistics Private Limited",
+    "Electricals Private Limited",
+    "Park IV Private Limited",
+    "Nuvama Wealth Management Limited",
+    "MUFG Intime India Private Limited",
+    "HDFC Bank Limited",
+    "Kanj & Co. LLP",
+    "IndusInd Bank Limited",
+    "Federal Bank Limited",
+    "BSE Limited",
+    "KSH Infra Park VI Private Limited",
+    "Solar Energy Corporation of India Limited",
+    "Malabar India Fund Limited",
+    "Shubhkamal Leasing and Investment Private Limited"
+    ],
+    "false_positive": []
+  },
+  "SSN": {
+    "true_positive": [],
+    "false_positive": []
+  },
+  "CREDIT_CARD": {
+    "true_positive": [],
+    "false_positive": []
+  },
+  "DOB": {
+    "true_positive": [],
+    "false_positive": []
+  },
+  "IP_ADDRESS": {
+    "true_positive": [],
+    "false_positive": []
+  }
+}
