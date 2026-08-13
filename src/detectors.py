@@ -66,3 +66,18 @@ def detect_ip_addresses(text: str) -> list[str]:
     unique_addresses = list(dict.fromkeys(matches))
 
     return unique_addresses
+
+SSN_PATTERN = re.compile(
+    r"(?<![\d-])"
+    r"\d{3}-\d{2}-\d{4}"
+    r"(?![\d-])"
+)
+
+
+def detect_ssns(text: str) -> list[str]:
+    """Return unique SSN-format values found in the text."""
+    matches = SSN_PATTERN.findall(text)
+
+    unique_ssns = list(dict.fromkeys(matches))
+
+    return unique_ssns
